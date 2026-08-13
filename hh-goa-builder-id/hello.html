@@ -31,6 +31,7 @@
   }
   a{color:inherit;}
 
+  /* ---------- top bar ---------- */
   .topbar{
     display:flex;align-items:center;justify-content:center;gap:10px;
     padding:22px 16px 8px;
@@ -49,6 +50,7 @@
     text-align:center;color:#c9c2b3;font-size:14px;max-width:520px;margin:6px auto 0;padding:0 20px;
   }
 
+  /* ---------- layout ---------- */
   .wrap{
     max-width:1180px;margin:0 auto;padding:18px 16px 0;
     display:grid;grid-template-columns:380px 1fr;gap:28px;
@@ -113,11 +115,13 @@
   .btn:disabled{opacity:.45;cursor:not-allowed;}
   .status{font-size:12px;color:#8a8378;text-align:center;min-height:16px;}
 
+  /* ---------- preview ---------- */
   .preview-col{display:flex;flex-direction:column;align-items:center;gap:14px;}
   .stage-scale{
     display:inline-block; transform-origin: top center;
   }
 
+  /* ================= CARD B (Builder ID) ================= */
   .cardB{
     width:1000px;height:1500px;background:#0c0c0c;border-radius:46px;padding:16px;
     position:relative; overflow:hidden;
@@ -203,9 +207,11 @@
 
   .dashed{border-top:3px dashed #cfc4a8;margin:32px 60px 0;}
 
-  .idrow{display:flex;align-items:center;justify-content:flex-start;padding:26px 60px 0;gap:20px;}
+  .idrow{display:flex;align-items:center;justify-content:space-between;padding:26px 60px 0;gap:20px;}
   .idlabel{font-weight:800;font-size:15px;letter-spacing:1px;color:var(--green-deep);}
   .idvalue{font-family:'Anton',sans-serif;font-size:32px;color:var(--ink);margin-top:4px;letter-spacing:1px;}
+  .barcode{height:56px;flex:none;}
+
   .footerB{position:relative;background:#111;margin-top:26px;padding:34px 40px 0;height:196px;
     clip-path: polygon(0 4%, 3% 0, 8% 3%, 14% 0, 20% 3%, 27% 0, 34% 2%, 41% 0, 48% 3%, 55% 0, 62% 2%, 69% 0, 76% 3%, 83% 0, 90% 2%, 97% 0, 100% 3%, 100% 100%, 0 100%);
   }
@@ -223,6 +229,7 @@
   }
   .bottombar svg{width:24px;height:24px;fill:#fff;}
 
+  /* ================= CARD A (PFP frame) ================= */
   .cardA{
     width:1000px;height:1000px;border-radius:50%;position:relative;
     background:var(--cream);
@@ -261,6 +268,7 @@
 <p class="sub">Upload a photo, get your on-brand HH Goa graphic in seconds. No login, no signup — download or share straight to X.</p>
 
 <div class="wrap">
+  <!-- CONTROLS -->
   <div class="panel">
     <div class="tabs">
       <div class="tab active" data-mode="B">Builder ID Card</div>
@@ -315,6 +323,7 @@
     </div>
   </div>
 
+  <!-- PREVIEW -->
   <div class="preview-col">
     <div class="stage-scale" id="stageScale">
       <div class="cardB" id="cardB">
@@ -397,6 +406,7 @@
               <div class="idlabel">BUILDER ID</div>
               <div class="idvalue" id="outId">HHG26-BR-0427</div>
             </div>
+            <svg class="barcode" id="barcodeSvg" viewBox="0 0 300 56"></svg>
           </div>
 
           <div class="footerB">
@@ -466,10 +476,10 @@
 (function(){
   const state = {
     mode:'B',
-    imgEl:null,
+    imgEl:null, // the currently loaded <img> data
     imgNaturalW:0, imgNaturalH:0,
     zoom:1.3,
-    pos:{x:0,y:0},
+    pos:{x:0,y:0}, // pixel offset within the ring (in ring's own pixel space, i.e. at native card resolution scale)
     dragging:false,
     dragStart:{x:0,y:0}, posStart:{x:0,y:0},
     ringSizeB:470, ringSizeA:1000,
@@ -502,6 +512,25 @@
     return `HHG26-${initials}-${num}`;
   }
 
+  function drawBarcode(svgEl, seed){
+    svgEl.innerHTML = '';
+    const h = hashStr(seed || 'barcode');
+    let x = 0;
+    let seedVal = h;
+    function rand(){ seedVal = (seedVal*1103515245+12345)>>>0; return (seedVal % 1000)/1000; }
+    while(x < 300){
+      const w = 2 + Math.floor(rand()*5);
+      if(rand() > 0.42){
+        const rect = document.createElementNS('http://www.w3.org/2000/svg','rect');
+        rect.setAttribute('x', x); rect.setAttribute('y', 0);
+        rect.setAttribute('width', w); rect.setAttribute('height', 56);
+        rect.setAttribute('fill', '#141210');
+        svgEl.appendChild(rect);
+      }
+      x += w + 1;
+    }
+  }
+
   function fillCornerDots(){
     const svg = document.querySelector('.corner-dots');
     let out = '';
@@ -519,6 +548,7 @@
   }
   fillCornerDots();
 
+  // ---------- tabs ----------
   document.querySelectorAll('.tab').forEach(tab=>{
     tab.addEventListener('click', ()=>{
       document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
@@ -532,6 +562,7 @@
     });
   });
 
+  // ---------- text fields ----------
   const inName = document.getElementById('inName');
   const inRole = document.getElementById('inRole');
   const inStack = document.getElementById('inStack');
@@ -552,6 +583,7 @@
 
     state.builderId = genBuilderId(name);
     document.getElementById('outId').textContent = state.builderId;
+    drawBarcode(document.getElementById('barcodeSvg'), state.builderId);
   }
   [inName,inRole,inStack].forEach(el=>el.addEventListener('input', updateText));
   inTitle.addEventListener('input', ()=>{ updateText(); });
@@ -565,6 +597,7 @@
   });
   updateText();
 
+  // ---------- upload ----------
   const uploadBox = document.getElementById('uploadBox');
   const fileInput = document.getElementById('fileInput');
   uploadBox.addEventListener('click', ()=>fileInput.click());
@@ -624,6 +657,7 @@
   }
 
   function coverBase(size){
+    // returns base scale so image covers a `size`x`size` square
     const w = state.imgNaturalW, h = state.imgNaturalH;
     if(!w || !h) return 1;
     return Math.max(size/w, size/h);
@@ -655,13 +689,15 @@
     relayoutAll();
   });
 
+  // drag to reposition (mouse + touch), works on whichever ring is visible
   function setupDrag(ringId, sizeKey){
     const ring = document.getElementById(ringId);
+    function getRect(){ return ring.getBoundingClientRect(); }
     function start(clientX, clientY){
       if(!state.imgURL) return;
       state.dragging = true;
-      const rect = ring.getBoundingClientRect();
-      const displayScale = state[sizeKey] / rect.width;
+      const rect = getRect();
+      const displayScale = state[sizeKey] / rect.width; // convert screen px -> card-native px
       state.dragDisplayScale = displayScale;
       state.dragStart = {x:clientX, y:clientY};
       state.posStart = {x:state.pos.x, y:state.pos.y};
@@ -688,23 +724,25 @@
   setupDrag('photoRingB','ringSizeB');
   setupDrag('photoRingA','ringSizeA');
 
+  // ---------- scale stage to fit viewport ----------
   function fitStage(){
     const stage = document.getElementById('stageScale');
-    const card = state.mode==='B' ? document.getElementById('cardB') : document.getElementById('cardA');
-    const natW = 1000;
-    const maxW = window.innerWidth < 700 ? Math.max(280, window.innerWidth - 24) : Math.min(window.innerWidth - 40, 460);
-    const scale = Math.min(1, maxW / natW);
+    const target = state.mode==='B' ? document.getElementById('cardB') : document.getElementById('cardA');
+    const natW = state.mode==='B' ? 1000 : 1000;
+    const maxW = Math.min(window.innerWidth - 40, 460);
+    const scale = Math.min(1, maxW/natW);
     stage.style.transform = `scale(${scale})`;
+    stage.style.marginBottom = (natW*scale*-1*(1-1)) + 'px';
+    // reserve height so layout doesn't collapse
     const natH = state.mode==='B' ? 1500 : 1000;
-    const extra = window.innerWidth < 700 ? 24 : 0;
-    stage.parentElement.style.minHeight = (natH * scale + extra) + 'px';
-    card.style.maxWidth = '100%';
+    stage.parentElement.style.minHeight = (natH*scale)+'px';
   }
   window.addEventListener('resize', fitStage);
   fitStage();
 
   function setStatus(msg){ document.getElementById('statusMsg').textContent = msg; }
 
+  // ---------- render to canvas ----------
   async function renderCanvas(){
     if(document.fonts && document.fonts.ready){ try{ await document.fonts.ready; }catch(e){} }
     const target = state.mode==='B' ? document.getElementById('cardB') : document.getElementById('cardA');
@@ -757,6 +795,7 @@
         return;
       }
 
+      // Fallback: download the file, then open a pre-filled tweet composer
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url; a.download = fileName;
@@ -770,8 +809,8 @@
       setStatus('Could not share automatically — try Download instead.');
     }
   });
+
 })();
 </script>
 </body>
 </html>
-
