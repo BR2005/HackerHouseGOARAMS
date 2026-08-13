@@ -745,13 +745,31 @@
   // ---------- render to canvas ----------
   async function renderCanvas(){
     if(document.fonts && document.fonts.ready){ try{ await document.fonts.ready; }catch(e){} }
+    const stage = document.getElementById('stageScale');
+    const oldTransform = stage.style.transform;
+    const oldMarginBottom = stage.style.marginBottom;
+    
+    // Reset transform so html2canvas computes element positions at 1:1 (1000px width) scale
+    stage.style.transform = 'none';
+    stage.style.marginBottom = '0px';
+    void stage.offsetHeight;
+
     const target = state.mode==='B' ? document.getElementById('cardB') : document.getElementById('cardA');
-    const canvas = await html2canvas(target, {
-      backgroundColor: state.mode==='A' ? null : '#0c0c0c',
-      scale: 2,
-      useCORS: true,
-      logging:false
-    });
+    let canvas;
+    try {
+      canvas = await html2canvas(target, {
+        backgroundColor: state.mode==='A' ? null : '#0c0c0c',
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        width: 1000,
+        height: state.mode==='B' ? 1500 : 1000
+      });
+    } finally {
+      stage.style.transform = oldTransform;
+      stage.style.marginBottom = oldMarginBottom;
+      void stage.offsetHeight;
+    }
     return canvas;
   }
 
